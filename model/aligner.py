@@ -43,13 +43,13 @@ class Aligner(nn.Module):
             dist_target = torch.round(cum_score_norm).long()
             distance = -self.sigma_square*((dist_target-cum_score_norm)**2)  # B, T, 1
 
-            alignment = distance.new_ones(B, L, T) * (-1e9)
-            alignment = alignment.scatter(1, dist_target.transpose(1, 2), distance.transpose(1, 2))
-            alignment = alignment.masked_fill(~x_mask.unsqueeze(1), -np.inf)
-            alignment = F.softmax(alignment, dim=-1)
-            alignment = alignment * z_mask.unsqueeze(-1)
+            exp_D = torch.exp(distance) * x_mask.unsqueeze(-1) # B, T, 1
+            sum_exp_D = exp_D.new_zeros(B, L) # B, L
+            sum_exp_D.scatter_add_(1, dist_target.squeeze(-1), exp_D.squeeze(-1))
+            sum_exp_denom = torch.gather(sum_exp_D, 1, dist_target.squeeze(-1))
             
-            x_weights = alignment.sum(1, keepdim=True)
+            x_weights = exp_D.transpose(1,2) / sum_exp_denom.unsqueeze(1) # B, 1, T
+
             indices = dist_target.squeeze(-1).unsqueeze(1).repeat(1, x.size(1), 1)
             z = self.z[:, :, :L].repeat(B, 1, 1)
             z = z.scatter_add(2, indices, x*x_weights)
