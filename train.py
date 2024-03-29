@@ -111,7 +111,7 @@ def main(hp, args):
 if __name__ == '__main__':
     p = argparse.ArgumentParser()
     p.add_argument('--gpu', type=str, default='0')
-    p.add_argument('--logdir', type=str, default='AdaStride')
+    p.add_argument('--logdir', type=str, default='TadaStride')
     p.add_argument('--seed', type=int, default=0)
     args = p.parse_args()
     
